@@ -1,0 +1,22 @@
+{{- if .Values.alembic.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "apirestaurant.fullname" . }}-alembic
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: alembic
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          command: ["poetry", "run", "alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "apirestaurant.fullname" . }}-config
+            - secretRef:
+                name: {{ include "apirestaurant.fullname" . }}-secrets
+{{- end }}

@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15.4-alpine
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: {{ include "apirestaurant.fullname" . }}-secrets
+          env:
+            - name: PGDATA
+              value: "/var/lib/postgresql/data/pgdata"
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -d ${POSTGRES_DB}
+                - -U ${POSTGRES_USER}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -d ${POSTGRES_DB}
+                - -U ${POSTGRES_USER}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - name: pg-volume
+              mountPath: /var/lib/postgresql/data/
+      volumes:
+        - name: pg-volume
+          persistentVolumeClaim:
+            claimName: postgres-pvc              
